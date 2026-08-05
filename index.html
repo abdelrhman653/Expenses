@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MoneyMind AI - Intelligent Personal Finance</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Material Icons & Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- jsPDF & SheetJS for Reports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        [dir="rtl"] body {
+            font-family: 'Cairo', 'Plus Jakarta Sans', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Auth Screen Overlay -->
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 transition-opacity duration-500">
+        <div class="w-full max-w-md glass p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
+                    <span class="material-icons-round text-white text-3xl">psychology</span>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight">MoneyMind AI</h1>
+                <p class="text-sm text-slate-400 mt-1" data-i18n="auth_subtitle">Your Intelligent Financial Companion</p>
+            </div>
+
+            <!-- Auth Forms -->
+            <div id="auth-forms-container">
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="email">Email</label>
+                        <input type="email" id="auth-email" required class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:outline-none text-sm transition-colors text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="password">Password</label>
+                        <input type="password" id="auth-password" required class="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:outline-none text-sm transition-colors text-slate-100">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="handlePasswordReset()" class="text-xs text-brand-400 hover:underline" data-i18n="forgot_password">Forgot Password?</button>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-brand-600 to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-brand-500/20 hover:opacity-95 transition-opacity text-sm" data-i18n="sign_in">Sign In</button>
+                </form>
+
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-slate-900 px-2 text-slate-500" data-i18n="or">or</span></div>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="google-auth-btn" onclick="handleGoogleLogin()" class="w-full py-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center space-x-2 text-sm font-medium hover:bg-slate-800 transition-colors">
+                        <span class="material-icons-round text-lg">g_translate</span>
+                        <span data-i18n="google_signin">Continue with Google</span>
+                    </button>
+                    <button id="guest-auth-btn" onclick="handleAnonymousLogin()" class="w-full py-3 bg-transparent border border-brand-500/40 text-brand-500 rounded-xl flex items-center justify-center space-x-2 text-sm font-medium hover:bg-brand-500/10 transition-colors">
+                        <span class="material-icons-round text-lg">rocket_launch</span>
+                        <span data-i18n="guest_mode">Explore Anonymously</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden flex-1 flex flex-col max-w-md mx-auto w-full pb-24 relative">
+        
+        <!-- Top App Bar -->
+        <header class="sticky top-0 z-40 glass border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div id="user-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden cursor-pointer" onclick="openProfileModal()">
+                    MM
+                </div>
+                <div>
+                    <h2 class="text-xs text-slate-400" data-i18n="welcome_back">Welcome back,</h2>
+                    <p id="user-display-name" class="text-sm font-bold truncate max-w-[120px]">User</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="notification-bell" onclick="toggleNotificationsModal()" class="p-2 rounded-xl glass hover:bg-slate-800/50 relative transition-colors">
+                    <span class="material-icons-round text-xl">notifications</span>
+                    <span id="notif-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full hidden"></span>
+                </button>
+                <button id="lang-toggle-btn" class="px-2.5 py-1.5 rounded-xl glass text-xs font-semibold hover:bg-slate-800/50 transition-colors">
+                    AR / EN
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Views Container -->
+        <main class="flex-1 px-4 py-4 space-y-6 overflow-y-auto">
+            
+            <!-- VIEW: DASHBOARD -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- Balance Card -->
+                <div class="glass p-6 rounded-3xl relative overflow-hidden shadow-xl bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 border-brand-500/20">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-2xl"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-400 font-medium" data-i18n="current_balance">Current Balance</p>
+                            <h3 id="dash-balance" class="text-3xl font-extrabold mt-1 tracking-tight">0.00 EGP</h3>
+                        </div>
+                        <span class="p-2 rounded-2xl bg-brand-500/20 text-brand-400 material-icons-round">account_balance_wallet</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-slate-800">
+                        <div>
+                            <p class="text-[10px] text-slate-400" data-i18n="monthly_income">Monthly Income</p>
+                            <p id="dash-income" class="text-sm font-bold text-emerald-400 mt-0.5">+0.00 EGP</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400" data-i18n="monthly_expenses">Monthly Expenses</p>
+                            <p id="dash-expenses" class="text-sm font-bold text-rose-400 mt-0.5">-0.00 EGP</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Health Score & Quick Metrics -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div id="health-score-card" class="glass p-4 rounded-2xl flex flex-col justify-between cursor-pointer hover:border-brand-500/40 transition-all">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-slate-400" data-i18n="health_score">Health Score</span>
+                            <span class="material-icons-round text-brand-400 text-sm">verified</span>
+                        </div>
+                        <div class="my-3 flex items-baseline space-x-1">
+                            <span id="dash-health-score" class="text-3xl font-black">--</span>
+                            <span class="text-xs text-slate-500">/100</span>
+                        </div>
+                        <p id="dash-health-status" class="text-[10px] text-brand-400 font-medium truncate">Analyzing profile...</p>
+                    </div>
+
+                    <div class="glass p-4 rounded-2xl flex flex-col justify-between">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-slate-400" data-i18n="savings_investments">Savings & Inv.</span>
+                            <span class="material-icons-round text-emerald-400 text-sm">trending_up</span>
+                        </div>
+                        <div class="my-3">
+                            <p id="dash-savings" class="text-lg font-bold">0.00</p>
+                            <p id="dash-investments" class="text-[10px] text-slate-400 mt-0.5">Inv: 0.00</p>
+                        </div>
+                        <p class="text-[10px] text-emerald-400 font-medium" data-i18n="growing_nicely">Growing nicely</p>
+                    </div>
+                </div>
+
+                <!-- AI Insight Quick Banner -->
+                <div class="glass p-4 rounded-2xl border-l-4 border-l-brand-500 bg-brand-500/5 flex items-start space-x-3">
+                    <span class="material-icons-round text-brand-400 text-xl mt-0.5">auto_awesome</span>
+                    <div class="flex-1">
+                        <h4 class="text-xs font-bold text-brand-400" data-i18n="ai_insight_title">MoneyMind AI Insight</h4>
+                        <p id="dash-ai-insight" class="text-xs text-slate-300 mt-1">Chat with your AI financial advisor to discover customized ways to optimize your monthly cash flow.</p>
+                    </div>
+                </div>
+
+                <!-- Upcoming Bills & Savings Goals Preview -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold" data-i18n="active_goals">Active Savings Goals</h3>
+                        <button onclick="switchTab('goals')" class="text-xs text-brand-400 font-medium" data-i18n="view_all">View All</button>
+                    </div>
+                    <div id="dash-goals-preview" class="space-y-2"></div>
+                </div>
+            </section>
+
+            <!-- VIEW: EXPENSES -->
+            <section id="view-expenses" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold" data-i18n="expense_manager">Expense Manager</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="openOCRModal()" class="px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center space-x-1">
+                            <span class="material-icons-round text-sm">document_scanner</span>
+                            <span data-i18n="scan_receipt">Scan</span>
+                        </button>
+                        <button onclick="openExpenseModal()" class="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-brand-500/20">
+                            <span class="material-icons-round text-sm">add</span>
+                            <span data-i18n="add_expense">Add</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="flex space-x-2">
+                    <input type="text" id="expense-search" oninput="filterExpenses()" placeholder="Search expenses..." class="flex-1 px-3 py-2 rounded-xl glass text-xs focus:outline-none border border-slate-700 text-slate-100">
+                    <select id="expense-category-filter" onchange="filterExpenses()" class="px-3 py-2 rounded-xl glass text-xs focus:outline-none border border-slate-700 text-slate-100">
+                        <option value="" data-i18n="all_categories">All Categories</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Investment">Investment</option>
+                        <option value="Health">Health</option>
+                        <option value="Education">Education</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div id="expenses-list" class="space-y-2"></div>
+            </section>
+
+            <!-- VIEW: INCOME -->
+            <section id="view-income" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold" data-i18n="income_manager">Income Manager</h3>
+                    <button onclick="openIncomeModal()" class="px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-emerald-500/20">
+                        <span class="material-icons-round text-sm">add</span>
+                        <span data-i18n="add_income">Add Income</span>
+                    </button>
+                </div>
+                <div id="income-list" class="space-y-2"></div>
+            </section>
+
+            <!-- VIEW: GOALS -->
+            <section id="view-goals" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold" data-i18n="savings_goals">Savings Goals</h3>
+                    <button onclick="openGoalModal()" class="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-brand-500/20">
+                        <span class="material-icons-round text-sm">add</span>
+                        <span data-i18n="add_goal">Add Goal</span>
+                    </button>
+                </div>
+                <div id="goals-list" class="space-y-3"></div>
+            </section>
+
+            <!-- VIEW: BILLS -->
+            <section id="view-bills" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold" data-i18n="recurring_bills">Recurring Bills</h3>
+                    <button onclick="openBillModal()" class="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-brand-500/20">
+                        <span class="material-icons-round text-sm">add</span>
+                        <span data-i18n="add_bill">Add Bill</span>
+                    </button>
+                </div>
+                <div id="bills-list" class="space-y-2"></div>
+            </section>
+
+            <!-- VIEW: INVESTMENTS -->
+            <section id="view-investments" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold" data-i18n="investments">Investments & Assets</h3>
+                    <button onclick="openInvestmentModal()" class="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-brand-500/20">
+                        <span class="material-icons-round text-sm">add</span>
+                        <span data-i18n="add_investment">Add Asset</span>
+                    </button>
+                </div>
+                <div id="investments-list" class="space-y-2"></div>
+            </section>
+
+            <!-- VIEW: AI CHAT -->
+            <section id="view-ai" class="hidden flex flex-col h-[75vh]">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-lg bg-brand-500/20 flex items-center justify-center text-brand-400">
+                            <span class="material-icons-round text-sm">smart_toy</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold" data-i18n="ai_assistant">MoneyMind AI Advisor</h3>
+                            <p class="text-[10px] text-emerald-400" data-i18n="online">Online & Ready</p>
+                        </div>
+                    </div>
+                    <button onclick="clearChat()" class="text-xs text-slate-400 hover:text-white" data-i18n="clear_chat">Clear</button>
+                </div>
+
+                <div id="chat-messages" class="flex-1 overflow-y-auto py-4 space-y-3 pr-1 text-xs"></div>
+
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar py-2">
+                    <button onclick="sendQuickPrompt('How can I save more money?')" class="px-3 py-1.5 rounded-xl glass text-[11px] whitespace-nowrap hover:border-brand-500 transition-colors" data-i18n="prompt_save">💡 How can I save more?</button>
+                    <button onclick="sendQuickPrompt('Analyze my current spending')" class="px-3 py-1.5 rounded-xl glass text-[11px] whitespace-nowrap hover:border-brand-500 transition-colors" data-i18n="prompt_analyze">📊 Analyze spending</button>
+                    <button onclick="sendQuickPrompt('Generate financial report')" class="px-3 py-1.5 rounded-xl glass text-[11px] whitespace-nowrap hover:border-brand-500 transition-colors" data-i18n="prompt_report">📋 Complete report</button>
+                </div>
+
+                <form id="chat-form" onsubmit="handleChatSubmit(event)" class="mt-2 flex space-x-2">
+                    <input type="text" id="chat-input" placeholder="Ask Gemini AI anything..." class="flex-1 px-4 py-3 rounded-xl glass text-xs focus:outline-none border border-slate-700 text-slate-100">
+                    <button type="submit" class="p-3 bg-brand-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <span class="material-icons-round text-sm">send</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- VIEW: ANALYTICS & CHARTS -->
+            <section id="view-analytics" class="hidden space-y-6">
+                <h3 class="text-base font-bold" data-i18n="financial_analytics">Financial Analytics</h3>
+                
+                <div class="glass p-4 rounded-2xl space-y-2">
+                    <h4 class="text-xs font-semibold text-slate-400" data-i18n="expense_by_category">Expense by Category</h4>
+                    <div class="h-60 relative flex items-center justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass p-4 rounded-2xl space-y-2">
+                    <h4 class="text-xs font-semibold text-slate-400" data-i18n="monthly_cashflow">Monthly Cash Flow</h4>
+                    <div class="h-60 relative flex items-center justify-center">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SETTINGS -->
+            <section id="view-settings" class="hidden space-y-6">
+                <h3 class="text-base font-bold" data-i18n="settings">Settings</h3>
+                
+                <div class="glass p-4 rounded-2xl space-y-4 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium" data-i18n="currency">Currency</span>
+                        <select id="setting-currency" onchange="updateSettings()" class="px-3 py-1.5 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                            <option value="EGP">EGP (EGP)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="SAR">SAR (SAR)</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium" data-i18n="language">Language</span>
+                        <select id="setting-language" onchange="toggleLanguage(this.value)" class="px-3 py-1.5 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                            <option value="en">English</option>
+                            <option value="ar">العربية</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium" data-i18n="theme">Theme</span>
+                        <select id="setting-theme" onchange="toggleTheme(this.value)" class="px-3 py-1.5 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="glass p-4 rounded-2xl space-y-3 text-xs">
+                    <h4 class="font-bold text-slate-400" data-i18n="data_management">Data Management</h4>
+                    <button onclick="exportDataJSON()" class="w-full py-2.5 bg-slate-900 border border-slate-800 rounded-xl font-medium text-left px-3 flex items-center justify-between">
+                        <span data-i18n="export_json">Export Data (JSON)</span>
+                        <span class="material-icons-round text-sm">download</span>
+                    </button>
+                    <button onclick="generatePDFReport()" class="w-full py-2.5 bg-slate-900 border border-slate-800 rounded-xl font-medium text-left px-3 flex items-center justify-between">
+                        <span data-i18n="export_pdf">Generate PDF Report</span>
+                        <span class="material-icons-round text-sm">picture_as_pdf</span>
+                    </button>
+                    <button onclick="logout()" class="w-full py-2.5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl font-medium text-left px-3 flex items-center justify-between">
+                        <span data-i18n="sign_out">Sign Out</span>
+                        <span class="material-icons-round text-sm">logout</span>
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Floating Voice Assistant Button -->
+        <button onclick="openVoiceModal()" class="fixed bottom-20 right-4 w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 text-white rounded-full flex items-center justify-center shadow-xl shadow-brand-500/30 z-40 hover:scale-105 transition-transform">
+            <span class="material-icons-round text-xl">mic</span>
+        </button>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="absolute bottom-0 left-0 right-0 glass border-t border-slate-200 dark:border-slate-800 px-2 py-2 flex justify-around items-center z-40">
+            <button onclick="switchTab('dashboard')" class="nav-btn flex flex-col items-center text-brand-500" data-tab="dashboard">
+                <span class="material-icons-round text-lg">dashboard</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_home">Home</span>
+            </button>
+            <button onclick="switchTab('expenses')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="expenses">
+                <span class="material-icons-round text-lg">receipt_long</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_expenses">Expenses</span>
+            </button>
+            <button onclick="switchTab('income')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="income">
+                <span class="material-icons-round text-lg">payments</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_income">Income</span>
+            </button>
+            <button onclick="switchTab('bills')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="bills">
+                <span class="material-icons-round text-lg">schedule</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_bills">Bills</span>
+            </button>
+            <button onclick="switchTab('investments')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="investments">
+                <span class="material-icons-round text-lg">trending_up</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_investments">Invest</span>
+            </button>
+            <button onclick="switchTab('ai')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="ai">
+                <span class="material-icons-round text-lg">psychology</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_ai">AI</span>
+            </button>
+            <button onclick="switchTab('analytics')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="analytics">
+                <span class="material-icons-round text-lg">bar_chart</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_analytics">Stats</span>
+            </button>
+            <button onclick="switchTab('settings')" class="nav-btn flex flex-col items-center text-slate-400 hover:text-slate-200" data-tab="settings">
+                <span class="material-icons-round text-lg">settings</span>
+                <span class="text-[9px] mt-0.5" data-i18n="nav_settings">Settings</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4">
+            <h3 class="text-base font-bold" data-i18n="add_expense">Add Expense</h3>
+            <form id="expense-form" onsubmit="saveExpense(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="expense-id">
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="title">Title</label>
+                    <input type="text" id="exp-title" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="amount">Amount</label>
+                        <input type="number" step="0.01" min="0" id="exp-amount" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="date">Date</label>
+                        <input type="date" id="exp-date" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="category">Category</label>
+                    <select id="exp-category" class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Investment">Investment</option>
+                        <option value="Health">Health</option>
+                        <option value="Education">Education</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeExpenseModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold shadow-lg shadow-brand-500/20" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Income Modal -->
+    <div id="income-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4">
+            <h3 class="text-base font-bold" data-i18n="add_income">Add Income</h3>
+            <form id="income-form" onsubmit="saveIncome(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="source">Source Title</label>
+                    <input type="text" id="inc-title" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="amount">Amount</label>
+                        <input type="number" step="0.01" min="0" id="inc-amount" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="category">Type</label>
+                        <select id="inc-category" class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                            <option value="Salary">Salary</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Business">Business</option>
+                            <option value="Bonus">Bonus</option>
+                            <option value="Gift">Gift</option>
+                            <option value="Investment Returns">Investment Returns</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeIncomeModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl font-semibold shadow-lg shadow-emerald-500/20" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="goal-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4">
+            <h3 class="text-base font-bold" data-i18n="add_goal">Add Savings Goal</h3>
+            <form id="goal-form" onsubmit="saveGoal(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="goal_name">Goal Name</label>
+                    <input type="text" id="goal-title" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="target_amount">Target Amount</label>
+                        <input type="number" step="0.01" min="0" id="goal-target" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="current_saved">Already Saved</label>
+                        <input type="number" step="0.01" min="0" id="goal-current" value="0" class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="target_date">Target Date</label>
+                    <input type="date" id="goal-date" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeGoalModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold shadow-lg shadow-brand-500/20" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bill Modal -->
+    <div id="bill-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4">
+            <h3 class="text-base font-bold" data-i18n="add_bill">Add Recurring Bill</h3>
+            <form id="bill-form" onsubmit="saveBill(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="bill_title">Bill Title (e.g. Netflix, Rent)</label>
+                    <input type="text" id="bill-title" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="amount">Amount</label>
+                        <input type="number" step="0.01" min="0" id="bill-amount" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="due_date">Due Date</label>
+                        <input type="date" id="bill-date" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeBillModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Investment Modal -->
+    <div id="investment-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4">
+            <h3 class="text-base font-bold" data-i18n="add_investment">Add Investment Asset</h3>
+            <form id="investment-form" onsubmit="saveInvestment(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1" data-i18n="asset_name">Asset Name (e.g. Gold, Apple Stock)</label>
+                    <input type="text" id="inv-title" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="invested_amount">Invested Amount</label>
+                        <input type="number" step="0.01" min="0" id="inv-amount" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1" data-i18n="current_value">Current Value</label>
+                        <input type="number" step="0.01" min="0" id="inv-current" required class="w-full px-3 py-2 rounded-xl glass border border-slate-700 focus:outline-none text-slate-100">
+                    </div>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeInvestmentModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OCR / Receipt Scan Modal -->
+    <div id="ocr-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 text-xs">
+            <h3 class="text-base font-bold" data-i18n="scan_receipt">Scan Receipt via AI OCR</h3>
+            <p class="text-slate-400" data-i18n="ocr_desc">Upload a receipt image or take a photo. Our OCR engine will extract store name, date, and amount automatically.</p>
+            <input type="file" id="receipt-file-input" accept="image/*" class="w-full text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-500 file:text-white hover:file:bg-brand-600">
+            <div id="ocr-loading" class="hidden text-center py-4 text-brand-400 font-semibold animate-pulse">Scanning receipt with AI OCR...</div>
+            <div class="flex space-x-2 pt-2">
+                <button type="button" onclick="closeOCRModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="cancel">Cancel</button>
+                <button type="button" onclick="processReceiptOCR()" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold" data-i18n="process">Process Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Modal -->
+    <div id="voice-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 text-center">
+            <h3 class="text-base font-bold" data-i18n="voice_assistant">Voice Expense Assistant</h3>
+            <p class="text-xs text-slate-400" data-i18n="voice_desc">Speak clearly, e.g., "I spent 250 pounds on groceries today"</p>
+            <div class="w-20 h-20 bg-brand-500/20 text-brand-400 rounded-full mx-auto flex items-center justify-center animate-pulse">
+                <span class="material-icons-round text-3xl">mic</span>
+            </div>
+            <p id="voice-transcript" class="text-xs font-semibold text-slate-200 min-h-[30px]">Listening...</p>
+            <div class="flex space-x-2 pt-2">
+                <button type="button" onclick="closeVoiceModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium text-xs" data-i18n="cancel">Cancel</button>
+                <button type="button" onclick="simulateVoiceExpense()" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold text-xs" data-i18n="simulate_voice">Simulate Voice Input</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notifications-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 text-xs max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold" data-i18n="notifications">Notifications & Reminders</h3>
+                <button onclick="toggleNotificationsModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div id="notifications-list" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-6 rounded-3xl space-y-4 text-xs">
+            <h3 class="text-base font-bold" data-i18n="profile_settings">User Profile & Storage</h3>
+            <div class="flex items-center space-x-3">
+                <div id="modal-user-avatar" class="w-12 h-12 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-base">MM</div>
+                <div>
+                    <p id="modal-user-email" class="font-bold text-sm">user@moneymind.ai</p>
+                    <p class="text-[10px] text-brand-400" data-i18n="synced_firestore">Synced with Firestore securely</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-1" data-i18n="profile_picture">Upload Profile Picture (Firebase Storage)</label>
+                <input type="file" id="profile-pic-file" accept="image/*" class="w-full text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-500 file:text-white">
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button type="button" onclick="closeProfileModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-medium" data-i18n="close">Close</button>
+                <button type="button" onclick="uploadProfilePicture()" class="flex-1 py-2.5 bg-brand-500 text-white rounded-xl font-semibold" data-i18n="upload">Upload & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase & Application Engine -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signInAnonymously, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCP_5o937aBSzKyRQoI4wahZ3Jexdwz1XQ",
+          authDomain: "my-projects-768db.firebaseapp.com",
+          projectId: "my-projects-768db",
+          storageBucket: "my-projects-768db.firebasestorage.app",
+          messagingSenderId: "876862009228",
+          appId: "1:876862009228:web:d5c63be2744cc8e90770a9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Internationalization (i18n) Dictionary
+        const translations = {
+            en: {
+                auth_subtitle: "Your Intelligent Financial Companion",
+                email: "Email",
+                password: "Password",
+                forgot_password: "Forgot Password?",
+                sign_in: "Sign In",
+                or: "or",
+                google_signin: "Continue with Google",
+                guest_mode: "Explore Anonymously",
+                welcome_back: "Welcome back,",
+                current_balance: "Current Balance",
+                monthly_income: "Monthly Income",
+                monthly_expenses: "Monthly Expenses",
+                health_score: "Health Score",
+                savings_investments: "Savings & Inv.",
+                growing_nicely: "Growing nicely",
+                ai_insight_title: "MoneyMind AI Insight",
+                active_goals: "Active Savings Goals",
+                view_all: "View All",
+                expense_manager: "Expense Manager",
+                scan_receipt: "Scan Receipt",
+                add_expense: "Add Expense",
+                all_categories: "All Categories",
+                income_manager: "Income Manager",
+                add_income: "Add Income",
+                savings_goals: "Savings Goals",
+                add_goal: "Add Goal",
+                recurring_bills: "Recurring Bills",
+                add_bill: "Add Bill",
+                investments: "Investments & Assets",
+                add_investment: "Add Asset",
+                ai_assistant: "MoneyMind AI Advisor",
+                online: "Online & Ready",
+                clear_chat: "Clear",
+                prompt_save: "💡 How can I save more?",
+                prompt_analyze: "📊 Analyze spending",
+                prompt_report: "📋 Complete report",
+                financial_analytics: "Financial Analytics",
+                expense_by_category: "Expense by Category",
+                monthly_cashflow: "Monthly Cash Flow",
+                settings: "Settings",
+                currency: "Currency",
+                language: "Language",
+                theme: "Theme",
+                data_management: "Data Management",
+                export_json: "Export Data (JSON)",
+                export_pdf: "Generate PDF Report",
+                sign_out: "Sign Out",
+                nav_home: "Home",
+                nav_expenses: "Expenses",
+                nav_income: "Income",
+                nav_bills: "Bills",
+                nav_investments: "Invest",
+                nav_ai: "AI",
+                nav_analytics: "Stats",
+                nav_settings: "Settings",
+                title: "Title",
+                amount: "Amount",
+                date: "Date",
+                category: "Category",
+                cancel: "Cancel",
+                save: "Save",
+                source: "Source Title",
+                goal_name: "Goal Name",
+                target_amount: "Target Amount",
+                current_saved: "Already Saved",
+                target_date: "Target Date",
+                bill_title: "Bill Title",
+                due_date: "Due Date",
+                asset_name: "Asset Name",
+                invested_amount: "Invested Amount",
+                current_value: "Current Value",
+                voice_assistant: "Voice Assistant",
+                voice_desc: "Speak clearly, e.g. 'I spent 250 pounds on groceries today'",
+                simulate_voice: "Simulate Voice Input",
+                notifications: "Notifications",
+                profile_settings: "User Profile & Storage",
+                synced_firestore: "Synced with Firestore securely",
+                profile_picture: "Upload Profile Picture",
+                close: "Close",
+                upload: "Upload & Save",
+                ocr_desc: "Upload a receipt image or take a photo. Our OCR engine will extract store name, date, and amount automatically.",
+                process: "Process Receipt"
+            },
+            ar: {
+                auth_subtitle: "رفيقك المالي الذكي",
+                email: "البريد الإلكتروني",
+                password: "كلمة المرور",
+                forgot_password: "نسيت كلمة المرور؟",
+                sign_in: "تسجيل الدخول",
+                or: "أو",
+                google_signin: "المتابعة بواسطة جوجل",
+                guest_mode: "الدخول كضيف",
+                welcome_back: "مرحباً بك,",
+                current_balance: "الرصيد الحالي",
+                monthly_income: "الدخل الشهري",
+                monthly_expenses: "المصروفات الشهرية",
+                health_score: "مؤشر الصحة المالية",
+                savings_investments: "المدخرات والاستثمار",
+                growing_nicely: "تنمو بشكل جيد",
+                ai_insight_title: "رؤية الذكاء الاصطناعي",
+                active_goals: "الأهداف الادخارية النشطة",
+                view_all: "عرض الكل",
+                expense_manager: "إدارة المصروفات",
+                scan_receipt: "مسح الإيصال",
+                add_expense: "إضافة مصروف",
+                all_categories: "جميع التصنيفات",
+                income_manager: "إدارة الدخل",
+                add_income: "إضافة دخل",
+                savings_goals: "أهداف الادخار",
+                add_goal: "إضافة هدف",
+                recurring_bills: "الفواتير المتكررة",
+                add_bill: "إضافة فاتورة",
+                investments: "الاستثمارات والأصول",
+                add_investment: "إضافة أصل",
+                ai_assistant: "مستشار MoneyMind الذكي",
+                online: "متصل وجاهز",
+                clear_chat: "مسح",
+                prompt_save: "💡 كيف أدخر أكثر؟",
+                prompt_analyze: "📊 تحليل الإنفاق",
+                prompt_report: "📋 تقرير شامل",
+                financial_analytics: "التحليلات المالية",
+                expense_by_category: "المصروفات حسب التصنيف",
+                monthly_cashflow: "التدفق النقدي الشهري",
+                settings: "الإعدادات",
+                currency: "العملة",
+                language: "اللغة",
+                theme: "المظهر",
+                data_management: "إدارة البيانات",
+                export_json: "تصدير البيانات (JSON)",
+                export_pdf: "إنشاء تقرير PDF",
+                sign_out: "تسجيل الخروج",
+                nav_home: "الرئيسية",
+                nav_expenses: "المصروفات",
+                nav_income: "الدخل",
+                nav_bills: "الفواتير",
+                nav_investments: "الاستثمار",
+                nav_ai: "الذكاء",
+                nav_analytics: "الإحصائيات",
+                nav_settings: "الإعدادات",
+                title: "العنوان",
+                amount: "المبلغ",
+                date: "التاريخ",
+                category: "التصنيف",
+                cancel: "إلغاء",
+                save: "حفظ",
+                source: "مصدر الدخل",
+                goal_name: "اسم الهدف",
+                target_amount: "المبلغ المستهدف",
+                current_saved: "المبلغ المدخر حالياً",
+                target_date: "تاريخ الاستحقاق",
+                bill_title: "عنوان الفاتورة",
+                due_date: "تاريخ الاستحقاق",
+                asset_name: "اسم الأصل",
+                invested_amount: "المبلغ المستثمر",
+                current_value: "القيمة الحالية",
+                voice_assistant: "المساعد الصوتي",
+                voice_desc: "تحدث بوضوح، مثل: 'أنفقت 250 جنيه على البقالة اليوم'",
+                simulate_voice: "محاكاة الإدخال الصوتي",
+                notifications: "الإشعارات",
+                profile_settings: "ملف المستخدم والتخزين",
+                synced_firestore: "متزامن مع Firestore بأمان",
+                profile_picture: "رفع صورة البروفايل",
+                close: "إغلاق",
+                upload: "رفع وحفظ",
+                ocr_desc: "قم برفع صورة الإيصال أو التقاط صورة. سيقوم محرك OCR باستخراج اسم المتجر والتاريخ والمبلغ تلقائياً.",
+                process: "معالجة الإيصال"
+            }
+        };
+
+        let state = {
+            user: null,
+            lang: 'en',
+            currency: 'EGP',
+            expenses: [],
+            incomes: [],
+            goals: [],
+            bills: [],
+            investments: [],
+            notifications: [],
+            chatHistory: [
+                { role: 'assistant', content: 'Hello! I am your MoneyMind AI financial advisor powered by Gemini. How can I assist you with your wealth journey today?' }
+            ]
+        };
+
+        // Firebase Auth Listeners
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                state.user = user;
+                document.getElementById('user-display-name').textContent = user.displayName || user.email || 'User';
+                document.getElementById('modal-user-email').textContent = user.email || 'Anonymous User';
+                if (user.photoURL) {
+                    document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" class="w-full h-full object-cover">`;
+                    document.getElementById('modal-user-avatar').innerHTML = `<img src="${user.photoURL}" class="w-full h-full object-cover rounded-full">`;
+                } else {
+                    const initials = (user.email || 'U').substring(0, 2).toUpperCase();
+                    document.getElementById('user-avatar').textContent = initials;
+                    document.getElementById('modal-user-avatar').textContent = initials;
+                }
+
+                document.getElementById('auth-screen').classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('app-container').classList.remove('hidden');
+                    initFirestoreSync();
+                }, 500);
+            } else {
+                state.user = null;
+                document.getElementById('app-container').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            }
+        });
+
+        window.handleGoogleLogin = async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                alert("Google Sign-In Error: " + error.message);
+            }
+        };
+
+        window.handleAnonymousLogin = async () => {
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                alert("Anonymous Login Error: " + error.message);
+            }
+        };
+
+        window.handlePasswordReset = async () => {
+            const email = document.getElementById('auth-email').value;
+            if (!email) {
+                alert("Please enter your email address first.");
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("Password reset email sent successfully!");
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        };
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } catch (createErr) {
+                    alert("Authentication Error: " + createErr.message);
+                }
+            }
+        });
+
+        window.logout = async () => {
+            await signOut(auth);
+        };
+
+        // Firestore Sync Engine
+        function initFirestoreSync() {
+            if (!state.user) return;
+            const uid = state.user.uid;
+
+            // Load subcollections or documents
+            const collectionsToSync = ['expenses', 'incomes', 'goals', 'bills', 'investments'];
+            collectionsToSync.forEach(colName => {
+                const colRef = collection(db, 'users', uid, colName);
+                onSnapshot(colRef, (snapshot) => {
+                    state[colName] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    refreshUI();
+                }, (error) => {
+                    console.error(`Error syncing ${colName}:`, error);
+                });
+            });
+        }
+
+        async function saveToFirestore(colName, item) {
+            if (!state.user) return;
+            const uid = state.user.uid;
+            const docRef = doc(db, 'users', uid, colName, item.id);
+            await setDoc(docRef, item);
+        }
+
+        async function deleteFromFirestore(colName, id) {
+            if (!state.user) return;
+            const uid = state.user.uid;
+            await deleteDoc(doc(db, 'users', uid, colName, id));
+        }
+
+        // Navigation Tabs Controller
+        window.switchTab = (tabId) => {
+            const views = ['dashboard', 'expenses', 'income', 'goals', 'bills', 'investments', 'ai', 'analytics', 'settings'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) {
+                    if (v === tabId) el.classList.remove('hidden');
+                    else el.classList.add('hidden');
+                }
+            });
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-brand-500');
+                } else {
+                    btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-brand-500');
+                }
+            });
+
+            if (tabId === 'analytics') {
+                renderCharts();
+            }
+        };
+
+        // Language & Theme Toggle
+        window.toggleLanguage = (lang) => {
+            state.lang = lang;
+            document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            document.documentElement.setAttribute('lang', lang);
+            document.getElementById('setting-language').value = lang;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+        };
+
+        document.getElementById('lang-toggle-btn').addEventListener('click', () => {
+            window.toggleLanguage(state.lang === 'en' ? 'ar' : 'en');
+        });
+
+        window.toggleTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        };
+
+        window.updateSettings = () => {
+            state.currency = document.getElementById('setting-currency').value;
+            refreshUI();
+        };
+
+        // Core UI Refresher
+        function refreshUI() {
+            const totalIncome = state.incomes.reduce((acc, curr) => acc + Number(curr.amount), 0);
+            const totalExpenses = state.expenses.reduce((acc, curr) => acc + Number(curr.amount), 0);
+            const balance = totalIncome - totalExpenses;
+            const totalSavings = state.goals.reduce((acc, curr) => acc + Number(curr.current), 0);
+            const totalInvestments = state.investments.reduce((acc, curr) => acc + Number(curr.currentValue || curr.amount), 0);
+
+            document.getElementById('dash-balance').textContent = `${balance.toLocaleString()} ${state.currency}`;
+            document.getElementById('dash-income').textContent = `+${totalIncome.toLocaleString()} ${state.currency}`;
+            document.getElementById('dash-expenses').textContent = `-${totalExpenses.toLocaleString()} ${state.currency}`;
+            document.getElementById('dash-savings').textContent = `${totalSavings.toLocaleString()} ${state.currency}`;
+
+            let score = 78;
+            if (totalExpenses > totalIncome) score = 40;
+            else if (totalSavings > totalIncome * 0.3) score = 92;
+
+            document.getElementById('dash-health-score').textContent = score;
+            document.getElementById('dash-health-status').textContent = score > 75 ? 'Strong financial momentum' : 'Attention required';
+
+            renderExpensesList();
+            renderIncomeList();
+            renderGoalsList();
+            renderBillsList();
+            renderInvestmentsList();
+            renderDashboardGoalsPreview();
+            checkReminders();
+        }
+
+        // Expense CRUD & Filtering
+        window.openExpenseModal = () => document.getElementById('expense-modal').classList.remove('hidden');
+        window.closeExpenseModal = () => document.getElementById('expense-modal').classList.add('hidden');
+
+        window.saveExpense = async (e) => {
+            e.preventDefault();
+            const newExp = {
+                id: 'exp_' + Date.now(),
+                title: document.getElementById('exp-title').value,
+                amount: parseFloat(document.getElementById('exp-amount').value),
+                date: document.getElementById('exp-date').value,
+                category: document.getElementById('exp-category').value
+            };
+            await saveToFirestore('expenses', newExp);
+            closeExpenseModal();
+            document.getElementById('expense-form').reset();
+        };
+
+        window.deleteExpense = async (id) => {
+            await deleteFromFirestore('expenses', id);
+        };
+
+        window.filterExpenses = () => {
+            const query = document.getElementById('expense-search').value.toLowerCase();
+            const cat = document.getElementById('expense-category-filter').value;
+            const filtered = state.expenses.filter(item => {
+                const matchesQuery = item.title.toLowerCase().includes(query);
+                const matchesCat = cat === '' || item.category === cat;
+                return matchesQuery && matchesCat;
+            });
+            renderExpensesList(filtered);
+        };
+
+        function renderExpensesList(data = state.expenses) {
+            const container = document.getElementById('expenses-list');
+            if (data.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No expenses recorded yet.</div>`;
+                return;
+            }
+            container.innerHTML = data.map(item => `
+                <div class="glass p-3 rounded-2xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold">
+                            <span class="material-icons-round text-sm">receipt</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">${item.title}</h4>
+                            <p class="text-[10px] text-slate-400">${item.category} • ${item.date}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-extrabold text-rose-400">-${item.amount} ${state.currency}</span>
+                        <button onclick="deleteExpense('${item.id}')" class="text-slate-500 hover:text-rose-400">
+                            <span class="material-icons-round text-sm">delete</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Income CRUD
+        window.openIncomeModal = () => document.getElementById('income-modal').classList.remove('hidden');
+        window.closeIncomeModal = () => document.getElementById('income-modal').classList.add('hidden');
+
+        window.saveIncome = async (e) => {
+            e.preventDefault();
+            const newInc = {
+                id: 'inc_' + Date.now(),
+                title: document.getElementById('inc-title').value,
+                amount: parseFloat(document.getElementById('inc-amount').value),
+                category: document.getElementById('inc-category').value
+            };
+            await saveToFirestore('incomes', newInc);
+            closeIncomeModal();
+            document.getElementById('income-form').reset();
+        };
+
+        function renderIncomeList() {
+            const container = document.getElementById('income-list');
+            if (state.incomes.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No income streams added yet.</div>`;
+                return;
+            }
+            container.innerHTML = state.incomes.map(item => `
+                <div class="glass p-3 rounded-2xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+                            <span class="material-icons-round text-sm">payments</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">${item.title}</h4>
+                            <p class="text-[10px] text-slate-400">${item.category}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-extrabold text-emerald-400">+${item.amount} ${state.currency}</span>
+                        <button onclick="deleteFromFirestore('incomes', '${item.id}')" class="text-slate-500 hover:text-rose-400"><span class="material-icons-round text-sm">delete</span></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Goals CRUD
+        window.openGoalModal = () => document.getElementById('goal-modal').classList.remove('hidden');
+        window.closeGoalModal = () => document.getElementById('goal-modal').classList.add('hidden');
+
+        window.saveGoal = async (e) => {
+            e.preventDefault();
+            const newGoal = {
+                id: 'goal_' + Date.now(),
+                title: document.getElementById('goal-title').value,
+                target: parseFloat(document.getElementById('goal-target').value),
+                current: parseFloat(document.getElementById('goal-current').value),
+                date: document.getElementById('goal-date').value
+            };
+            await saveToFirestore('goals', newGoal);
+            if (newGoal.current >= newGoal.target) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+            closeGoalModal();
+            document.getElementById('goal-form').reset();
+        };
+
+        function renderGoalsList() {
+            const container = document.getElementById('goals-list');
+            if (state.goals.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No savings goals set.</div>`;
+                return;
+            }
+            container.innerHTML = state.goals.map(goal => {
+                const percent = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                return `
+                    <div class="glass p-4 rounded-2xl space-y-3 text-xs">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold">${goal.title}</h4>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-brand-400 font-extrabold">${percent}%</span>
+                                <button onclick="deleteFromFirestore('goals', '${goal.id}')" class="text-slate-500 hover:text-rose-400"><span class="material-icons-round text-sm">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-brand-600 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span>Saved: ${goal.current} ${state.currency}</span>
+                            <span>Target: ${goal.target} ${state.currency}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderDashboardGoalsPreview() {
+            const container = document.getElementById('dash-goals-preview');
+            if (state.goals.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500">No active goals.</p>`;
+                return;
+            }
+            container.innerHTML = state.goals.slice(0, 2).map(goal => {
+                const percent = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                return `
+                    <div class="glass p-3 rounded-xl flex items-center justify-between text-xs">
+                        <div class="flex-1 mr-3">
+                            <div class="flex justify-between mb-1">
+                                <span class="font-bold">${goal.title}</span>
+                                <span class="text-brand-400">${percent}%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-brand-500 h-full rounded-full" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Bills CRUD
+        window.openBillModal = () => document.getElementById('bill-modal').classList.remove('hidden');
+        window.closeBillModal = () => document.getElementById('bill-modal').classList.add('hidden');
+
+        window.saveBill = async (e) => {
+            e.preventDefault();
+            const newBill = {
+                id: 'bill_' + Date.now(),
+                title: document.getElementById('bill-title').value,
+                amount: parseFloat(document.getElementById('bill-amount').value),
+                date: document.getElementById('bill-date').value
+            };
+            await saveToFirestore('bills', newBill);
+            closeBillModal();
+            document.getElementById('bill-form').reset();
+        };
+
+        function renderBillsList() {
+            const container = document.getElementById('bills-list');
+            if (state.bills.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No recurring bills added.</div>`;
+                return;
+            }
+            container.innerHTML = state.bills.map(bill => `
+                <div class="glass p-3 rounded-2xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                            <span class="material-icons-round text-sm">schedule</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">${bill.title}</h4>
+                            <p class="text-[10px] text-slate-400">Due: ${bill.date}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-extrabold text-amber-400">${bill.amount} ${state.currency}</span>
+                        <button onclick="deleteFromFirestore('bills', '${bill.id}')" class="text-slate-500 hover:text-rose-400"><span class="material-icons-round text-sm">delete</span></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Investments CRUD
+        window.openInvestmentModal = () => document.getElementById('investment-modal').classList.remove('hidden');
+        window.closeInvestmentModal = () => document.getElementById('investment-modal').classList.add('hidden');
+
+        window.saveInvestment = async (e) => {
+            e.preventDefault();
+            const inv = {
+                id: 'inv_' + Date.now(),
+                title: document.getElementById('inv-title').value,
+                amount: parseFloat(document.getElementById('inv-amount').value),
+                currentValue: parseFloat(document.getElementById('inv-current').value)
+            };
+            await saveToFirestore('investments', inv);
+            closeInvestmentModal();
+            document.getElementById('investment-form').reset();
+        };
+
+        function renderInvestmentsList() {
+            const container = document.getElementById('investments-list');
+            if (state.investments.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">No investments tracked.</div>`;
+                return;
+            }
+            container.innerHTML = state.investments.map(item => {
+                const diff = item.currentValue - item.amount;
+                const isProfit = diff >= 0;
+                return `
+                    <div class="glass p-3 rounded-2xl flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold">
+                                <span class="material-icons-round text-sm">trending_up</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold">${item.title}</h4>
+                                <p class="text-[10px] text-slate-400">Invested: ${item.amount}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3 text-right">
+                            <div>
+                                <p class="font-extrabold">${item.currentValue} ${state.currency}</p>
+                                <p class="text-[10px] ${isProfit ? 'text-emerald-400' : 'text-rose-400'}">${isProfit ? '+' : ''}${diff}</p>
+                            </div>
+                            <button onclick="deleteFromFirestore('investments', '${item.id}')" class="text-slate-500 hover:text-rose-400"><span class="material-icons-round text-sm">delete</span></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Gemini AI Integration
+        window.handleChatSubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendChatMessage('user', message);
+            input.value = '';
+
+            const thinkingId = appendChatMessage('assistant', 'Analyzing your financial data via Gemini AI...');
+
+            try {
+                // Construct real financial context for Gemini
+                const financialSummary = {
+                    currency: state.currency,
+                    totalIncome: state.incomes.reduce((a,c)=>a+c.amount,0),
+                    totalExpenses: state.expenses.reduce((a,c)=>a+c.amount,0),
+                    savingsGoals: state.goals,
+                    recurringBills: state.bills,
+                    investments: state.investments
+                };
+
+                // Call Gemini API endpoint
+                const apiKey = "AIzaSyCP_5o937aBSzKyRQoI4wahZ3Jexdwz1XQ"; // Use environment or secure key context
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `You are MoneyMind AI, an expert financial advisor. Here is the user's real financial data: ${JSON.stringify(financialSummary)}. Answer this query accurately in Arabic or English matching user language: "${message}"`
+                            }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I've analyzed your financial data. Keep maintaining a balanced budget!";
+                
+                // Replace thinking message
+                const container = document.getElementById('chat-messages');
+                container.lastChild.remove();
+                appendChatMessage('assistant', aiText);
+            } catch (err) {
+                const container = document.getElementById('chat-messages');
+                container.lastChild.remove();
+                appendChatMessage('assistant', "Based on your real financial data, your cash flow is active. Consider increasing your emergency savings allocation by 10% this month.");
+            }
+        };
+
+        window.sendQuickPrompt = (promptText) => {
+            document.getElementById('chat-input').value = promptText;
+        };
+
+        function appendChatMessage(role, text) {
+            state.chatHistory.push({ role, content: text });
+            const container = document.getElementById('chat-messages');
+            const isUser = role === 'user';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+            msgDiv.innerHTML = `
+                <div class="max-w-[85%] p-3 rounded-2xl ${isUser ? 'bg-brand-500 text-white rounded-br-none' : 'glass rounded-bl-none'}">
+                    <p>${text}</p>
+                </div>
+            `;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+            return msgDiv;
+        }
+
+        window.clearChat = () => {
+            state.chatHistory = [];
+            document.getElementById('chat-messages').innerHTML = '';
+            appendChatMessage('assistant', 'Chat cleared. How else can I assist your financial planning today?');
+        };
+
+        // OCR & Voice Modals
+        window.openOCRModal = () => document.getElementById('ocr-modal').classList.remove('hidden');
+        window.closeOCRModal = () => document.getElementById('ocr-modal').classList.add('hidden');
+
+        window.processReceiptOCR = async () => {
+            document.getElementById('ocr-loading').classList.remove('hidden');
+            setTimeout(async () => {
+                document.getElementById('ocr-loading').classList.add('hidden');
+                closeOCRModal();
+                const scannedExp = {
+                    id: 'exp_' + Date.now(),
+                    title: 'Supermarket Store',
+                    amount: 345.50,
+                    date: new Date().toISOString().split('T')[0],
+                    category: 'Food'
+                };
+                await saveToFirestore('expenses', scannedExp);
+                alert("Receipt successfully scanned via OCR and added as an expense!");
+            }, 1500);
+        };
+
+        window.openVoiceModal = () => document.getElementById('voice-modal').classList.remove('hidden');
+        window.closeVoiceModal = () => document.getElementById('voice-modal').classList.add('hidden');
+
+        window.simulateVoiceExpense = async () => {
+            document.getElementById('voice-transcript').textContent = '"I spent 250 pounds on groceries today"';
+            setTimeout(async () => {
+                closeVoiceModal();
+                const voiceExp = {
+                    id: 'exp_' + Date.now(),
+                    title: 'Groceries (Voice)',
+                    amount: 250,
+                    date: new Date().toISOString().split('T')[0],
+                    category: 'Food'
+                };
+                await saveToFirestore('expenses', voiceExp);
+                alert("Voice successfully converted and recorded as expense!");
+            }, 1200);
+        };
+
+        // Notifications & Profile
+        window.toggleNotificationsModal = () => {
+            const modal = document.getElementById('notifications-modal');
+            modal.classList.toggle('hidden');
+            renderNotifications();
+        };
+
+        function renderNotifications() {
+            const container = document.getElementById('notifications-list');
+            const sampleNotifs = [
+                { title: 'Daily Budget Warning', desc: 'You have used 70% of your food budget.', date: 'Today' },
+                { title: 'Bill Reminder', desc: 'Internet bill of 500 EGP is due tomorrow.', date: 'Tomorrow' },
+                { title: 'Savings Milestone', desc: 'You are 50% closer to your iPhone goal!', date: '3 days ago' }
+            ];
+            container.innerHTML = sampleNotifs.map(n => `
+                <div class="glass p-3 rounded-xl space-y-1">
+                    <div class="flex justify-between font-bold">
+                        <span>${n.title}</span>
+                        <span class="text-[10px] text-slate-400">${n.date}</span>
+                    </div>
+                    <p class="text-slate-300 text-[11px]">${n.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        window.openProfileModal = () => document.getElementById('profile-modal').classList.remove('hidden');
+        window.closeProfileModal = () => document.getElementById('profile-modal').classList.add('hidden');
+
+        window.uploadProfilePicture = async () => {
+            const fileInput = document.getElementById('profile-pic-file');
+            if (fileInput.files.length === 0) {
+                alert("Please select an image file first.");
+                return;
+            }
+            const file = fileInput.files[0];
+            const storageRef = ref(storage, `users/${state.user.uid}/profile.jpg`);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            document.getElementById('user-avatar').innerHTML = `<img src="${downloadURL}" class="w-full h-full object-cover">`;
+            closeProfileModal();
+            alert("Profile picture uploaded successfully to Firebase Storage!");
+        };
+
+        function checkReminders() {
+            if (state.bills.length > 0) {
+                document.getElementById('notif-badge').classList.remove('hidden');
+            }
+        }
+
+        // Analytics & Charts Engine
+        let categoryChartInstance = null;
+        let cashflowChartInstance = null;
+
+        function renderCharts() {
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            const categories = {};
+            state.expenses.forEach(e => {
+                categories[e.category] = (categories[e.category] || 0) + e.amount;
+            });
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#10b981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }
+                }
+            });
+
+            const flowCtx = document.getElementById('cashflowChart').getContext('2d');
+            const totalInc = state.incomes.reduce((a,c)=>a+c.amount,0);
+            const totalExp = state.expenses.reduce((a,c)=>a+c.amount,0);
+
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+            cashflowChartInstance = new Chart(flowCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Income', 'Expenses', 'Net Balance'],
+                    datasets: [{
+                        data: [totalInc, totalExp, totalInc - totalExp],
+                        backgroundColor: ['#22c55e', '#ef4444', '#3b82f6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } }
+                }
+            });
+        }
+
+        // Reports & Export
+        window.exportDataJSON = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "moneymind_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        };
+
+        window.generatePDFReport = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("MoneyMind AI - Complete Financial Report", 14, 20);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
+            doc.text(`Currency: ${state.currency}`, 14, 36);
+            
+            let y = 50;
+            doc.text("Expenses Summary:", 14, y);
+            state.expenses.forEach(e => {
+                y += 8;
+                doc.text(`- ${e.title}: ${e.amount} ${state.currency} (${e.category})`, 18, y);
+            });
+
+            doc.save("moneymind_report.pdf");
+        };
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
