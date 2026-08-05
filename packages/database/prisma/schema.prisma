@@ -1,0 +1,123 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ProfessionalLevel {
+  MEN_FIRST_TIER
+  MEN_SECOND_TIER
+  WOMEN_FIRST_TIER
+  YOUTH
+}
+
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  email         String     @unique
+  passwordHash  String?
+  googleId      String?
+  githubId      String?
+  name          String
+  avatarUrl     String?
+  role          Role       @default(USER)
+  favorites     String[]   @db.ObjectId
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  downloads     Download[]
+  logs          AdminLog[]
+}
+
+model Country {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String   @unique
+  code          String   @unique
+  flagUrl       String
+  continent     String
+  leagues       League[]
+}
+
+model League {
+  id             String            @id @default(auto()) @map("_id") @db.ObjectId
+  countryId      String            @db.ObjectId
+  name           String
+  slug           String            @unique
+  foundationYear Int
+  logoUrl        String
+  colors         String[]
+  website        String?
+  level          ProfessionalLevel @default(MEN_FIRST_TIER)
+  country        Country           @relation(fields: [countryId], references: [id])
+  seasons        Season[]
+  clubs          Club[]            @relation(fields: [clubIds], references: [id])
+  clubIds        String[]          @db.ObjectId
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([slug])
+}
+
+model Club {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  shortName      String
+  logoUrl        String
+  primaryColor   String
+  secondaryColor String
+  foundationYear Int
+  leagueIds      String[]   @db.ObjectId
+  leagues        League[]   @relation(fields: [leagueIds], references: [id])
+  championships  Champion[]
+}
+
+model Season {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  leagueId  String    @db.ObjectId
+  year      String
+  startDate DateTime?
+  endDate   DateTime?
+  league    League    @relation(fields: [leagueId], references: [id])
+  champion  Champion?
+
+  @@unique([leagueId, year])
+}
+
+model Champion {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  seasonId     String @unique @db.ObjectId
+  clubId       String @db.ObjectId
+  points       Int?
+  goalsFor     Int?
+  goalsAgainst Int?
+  season       Season @relation(fields: [seasonId], references: [id])
+  club         Club   @relation(fields: [clubId], references: [id])
+}
+
+model Download {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  leagueId   String   @db.ObjectId
+  videoUrl   String
+  format     String   @default("mp4")
+  resolution String   @default("1080x1920")
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model AdminLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId   String   @db.ObjectId
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+  admin     User     @relation(fields: [adminId], references: [id])
+}
+
