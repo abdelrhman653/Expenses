@@ -1,0 +1,23 @@
+{
+  "name": "football-champions-timeline",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:push": "cd packages/database && npx prisma db push",
+    "db:generate": "cd packages/database && npx prisma generate",
+    "db:seed": "cd packages/database && npx ts-node seed.ts"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.2",
+    "typescript": "^5.4.5"
+  }
+}
